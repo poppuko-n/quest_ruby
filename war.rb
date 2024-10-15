@@ -54,6 +54,17 @@ class Player
   def play_card
     hand.shift
   end
+
+  # テーブルのカードを手札に追加
+  def add_cards(cards)
+    @hand.concat(cards)
+  end
+
+  # プレイヤーの手札が空になっているのか確認
+  def empty?
+    hand.empty?
+  end
+
 end
 
 # ゲーム進行
@@ -68,12 +79,12 @@ class Game
   def start
     puts '戦争を開始します。'
     puts 'カードが配られました'
-    puts '戦争!'
-    to_table = @players.map(&:play_card)
-    to_table.each.with_index do |card, i|
-      puts "#{@players[i].name}のカードは#{card.name}"
+    while @players.none?(&:empty?)
+      puts '戦争!'
+      buttle
+      check_gameover
+      end
     end
-    buttle(to_table)
   end
 
   # 手札を持ったプレイヤーを作成
@@ -84,16 +95,42 @@ class Game
   end
 
   # テーブルに置かれたカードを比較する
-  def buttle(to_table)
-    values = to_table.map(&:value)
-    winner_player = values.index(values.min)
-    if values.uniq.size == 1
-      puts '引き分けです。'
-    else
-      puts "#{@players[winner_player].name}が勝ちました。"
+  # 引き分けの場合、テーブルにカードをためる
+  # 勝者が出るまでカードを出し続ける
+  def buttle
+    table_cards = []
+
+    loop do
+      to_table = @players.map(&:play_card)
+      to_table.each.with_index do |card, i|
+        puts "#{@players[i].name}のカードは#{card.name}"
+        table_cards << card
+      end
+
+      values = to_table.map(&:value)
+      if values.uniq.size == 1
+        puts '引き分けです。'
+      else
+        winner_player = values.index(values.min)
+        puts "#{@players[winner_player].name}が勝ちました。"
+        puts "#{@players[winner_player].name}はカードを#{table_cards.size}枚もらいました。"
+        @players[winner_player].add_cards(table_cards)
+        break
+      end
     end
   end
+
+
+  # 手札が無くなった人が一人でもいればゲーム終了し、プレイヤを表示
+  def check_gameover
+    @players.each do |player|
+      if player.empty?
+        puts "#{player.name}の手札がなくなりました。"
+      end
+  end
 end
+
+
 
 game = Game.new
 game.start
