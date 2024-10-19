@@ -22,6 +22,10 @@ class Card
 
     RANKS.index(@rank)
   end
+
+  def spade_one?
+    @suit == 'スペード' && @rank == 'A'
+  end
 end
 
 # カード情報を継承し、ジョーカーを作成
@@ -132,7 +136,6 @@ class Game
   # ゲームを開始
   def start
     puts 'カードが配られました'
-    puts '戦争!'
     buttle until check_gameover     # ゲームオーバになるまでバトルを実施
     display_nohand_player           # 手札が０枚になったプレイヤーを表示
     display_hand_size               # 各プレイヤーの手札の枚数を表示
@@ -142,9 +145,10 @@ class Game
 
   # バトルを開始する（誰かの手札がなくなるまで繰り返す作業）
   def buttle
+    puts '戦争!'
     play_cards = play_around         # 手札の一番上のカードを出す
-    @table_cards.concat(play_cards)  # 出されたカードをテーブルの上に並べる、引き分けの場合はどんどん追加される
-    displya_play_cards(play_cards)   # 場札に出されたカードを順番に表示
+    displya_play_cards(play_cards)   # プレイカードを順番に表示
+    @table_cards.concat(play_cards)  # プレイカードを場札の上に並べる、引き分けの場合はどんどん追加される
     resolve(play_cards)              # 判定処理を実施
     manage_empty_players             # 手札が0枚になったら山札から手札に追加
   end
@@ -163,13 +167,24 @@ class Game
 
   # 場札のカードを比較し、勝ち負けの判定を実施する
   def resolve(play_cards)
-    values = play_cards.map(&:value)
-    max_values_count = values.count(values.max)
-    if max_values_count >= 2
+    values = play_cards.map(&:value)               # プレイカードが出された順番に強さを代入
+    max_values_count = values.count(values.max)    # プレイカードのうち一番強い数字の数を代入
+    if max_values_count >= 2                       # 一番強いカードが複数出た場合
       hand_draw
+      spade_one_daw(play_cards) if play_cards.map.any?(&:spade_one?)
     else
       hand_wineer(values)
     end
+  end
+
+  # スペードの１でドローだった場合の処理
+  def spade_one_daw(play_cards)
+    winner_player = play_cards.index(&:spade_one?)
+    puts '.....引き分けですが、世界最強がでました！！！！！！！！！！！！'
+    puts "#{@players[winner_player].name}が勝ちました。"
+    puts "#{@players[winner_player].name}はカードを#{@table_cards.size}枚もらいました。"
+    @players[winner_player].collect_won_cards(@table_cards)
+    @table_cards.clear
   end
 
   # 引き分け時の処理
@@ -206,7 +221,7 @@ class Game
 
   # プレイヤ-の手札の枚数を表示する
   def display_hand_size
-    @players.each { |player| puts "#{player.name}の手札の枚数は#{player.hand.size}" }
+    @players.each { |player| puts "#{player.name}の手札の枚数は#{player.hand.size}です。" }
   end
 
   # ゲーム終了後、ランキングを表示する
