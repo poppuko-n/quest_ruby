@@ -1,4 +1,3 @@
-
 # frozen_string_literal: true
 
 # カード情報クラス
@@ -19,7 +18,8 @@ class Card
 
   # カードの強さをかえす。
   def value
-    return 14 if @rank == "ジョーカー"
+    return 14 if @rank == 'ジョーカー'
+
     RANKS.index(@rank)
   end
 end
@@ -27,11 +27,11 @@ end
 # カード情報を継承し、ジョーカーを作成
 class Joker < Card
   def initialize
-    super("ジョーカー", "ジョーカー")
+    super('ジョーカー', 'ジョーカー')
   end
 
   def name
-    puts "ジョーカーです。"
+    'ジョーカーです。'
   end
 end
 
