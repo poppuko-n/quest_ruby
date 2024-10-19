@@ -1,9 +1,10 @@
+
 # frozen_string_literal: true
 
-# ５２枚のカードをつくり、カードの情報をもたせるクラス
+# カード情報クラス
 class Card
   SUITS = %w[スペード ハート ダイアモンド クラブ].freeze
-  RANKS = %w[A K Q J 10 9 8 7 6 5 4 3 2].freeze
+  RANKS = %w[2 3 4 5 6 7 8 9 10 J Q K A].freeze
   attr_reader :suit, :rank
 
   def initialize(suit, rank)
@@ -16,13 +17,25 @@ class Card
     "#{@suit}の#{@rank}です。"
   end
 
-  # ランクの強さをかえす。小さい方が強力なカード
+  # カードの強さをかえす。
   def value
+    return 14 if @rank == "ジョーカー"
     RANKS.index(@rank)
   end
 end
 
-# カードを管理するクラス
+# カード情報を継承し、ジョーカーを作成
+class Joker < Card
+  def initialize
+    super("ジョーカー", "ジョーカー")
+  end
+
+  def name
+    puts "ジョーカーです。"
+  end
+end
+
+# カードを作成、管理するクラス
 class Deck
   def initialize
     @cards = []
@@ -31,6 +44,7 @@ class Deck
         @cards << Card.new(suit, rank)
       end
     end
+    @cards << Joker.new
     shuffle
   end
 
@@ -38,19 +52,22 @@ class Deck
     @cards.shuffle!
   end
 
-  # カードを人数毎（今回は２人）に分けるが、まだ配らない
-  def deal
-    @cards.each_slice(@cards.size / 2).to_a
+  def size
+    @cards.size
+  end
+
+  def each_slice(player_count)
+    @cards.each_slice(player_count)
   end
 end
 
-# プライヤーを管理するクラス
+# プレイヤー情報クラス
 class Player
   attr_reader :name, :hand, :won_cards
 
-  def initialize(name, cards)
+  def initialize(name, hand)
     @name = name
-    @hand = cards
+    @hand = hand
     @won_cards = []
   end
 
@@ -59,7 +76,7 @@ class Player
     hand.shift
   end
 
-  # 勝者が取った場札を追加
+  # 勝者が取ったカードを場札を追加
   def collect_won_cards(cards)
     @won_cards.concat(cards)
   end
@@ -76,41 +93,60 @@ class Player
   end
 end
 
-# ゲーム進行を管理する
+# ゲーム進行を管理するクラス
 class Game
-  # シャッフルしたデッキを準備し、各プレイヤーに手札を渡す
   def initialize
-    @deck = Deck.new
-    @players = create_players
-    @table_cards = []
+    @deck = Deck.new                     # 山札をシャッフルする
+    @players = create_players            # 入力された情報をもとにプレイヤーを作成
+    @table_cards = []                    # プレイヤーがテーブルに出す場をセット
+    @player_count = 0                    # プレイヤーの人数の初期設定
   end
 
-  # 手札を持ったプレイヤーを作成
+  # 入力された情報からプレイヤーを作成する
   def create_players
-    @deck.deal.map.with_index do |cards, index|
-      Player.new("プレイヤー#{index + 1}", cards)
+    player_count
+    craete_player_object
+  end
+
+  # プレイヤーの人数を取得
+  def player_count
+    puts '戦争を開始します。'
+    puts 'プレイヤーの人数を入力してください:'
+    @player_count = gets.to_i
+  end
+
+  # プレイヤーの情報を取得
+  def craete_player_object
+    players = []
+    (1..@player_count).each do |i|
+      puts "プレイヤー#{i}の名前を入力してください:"
+      player_name = gets.chomp
+      players << player_name
+    end
+    hands = @deck.each_slice(@deck.size / @player_count).to_a
+    players.each_with_index.map do |player, index|
+      Player.new(player, hands[index])
     end
   end
 
   # ゲームを開始
   def start
-    puts '戦争を開始します。'
     puts 'カードが配られました'
     puts '戦争!'
-    buttle until check_gameover     #ゲームオーバになるまでバトルを実施
-    display_nohand_player           #手札が０枚になったプレイヤーを表示
-    display_hand_size               #各プレイヤーの手札の枚数を表示
-    display_ranking                 #ランキングを表示
+    buttle until check_gameover     # ゲームオーバになるまでバトルを実施
+    display_nohand_player           # 手札が０枚になったプレイヤーを表示
+    display_hand_size               # 各プレイヤーの手札の枚数を表示
+    display_ranking                 # ランキングを表示
     puts '戦争を終了します。'
   end
 
-  # バトルを開始する（誰かの手札がなくなるまで実施する作業）
+  # バトルを開始する（誰かの手札がなくなるまで繰り返す作業）
   def buttle
-    play_cards = play_around         #場札にカードを出す
-    @table_cards.concat(play_cards) 
-    displya_play_cards(play_cards)   #場札に出されたカードを表示
-    resolve(play_cards)              #判定処理を実施
-    manage_empty_players             #手札が0枚になったら山札から手札に追加
+    play_cards = play_around         # 手札の一番上のカードを出す
+    @table_cards.concat(play_cards)  # 出されたカードをテーブルの上に並べる、引き分けの場合はどんどん追加される
+    displya_play_cards(play_cards)   # 場札に出されたカードを順番に表示
+    resolve(play_cards)              # 判定処理を実施
+    manage_empty_players             # 手札が0枚になったら山札から手札に追加
   end
 
   # 各プレイヤーが、場に手札の一番上のカードを場札に出す
@@ -128,15 +164,26 @@ class Game
   # 場札のカードを比較し、勝ち負けの判定を実施する
   def resolve(play_cards)
     values = play_cards.map(&:value)
-    if values.uniq.size == 1
-      puts '引き分けです。'
+    max_values_count = values.count(values.max)
+    if max_values_count >= 2
+      hand_draw
     else
-      winner_player = values.index(values.min)
-      puts "#{@players[winner_player].name}が勝ちました。"
-      puts "#{@players[winner_player].name}はカードを#{@table_cards.size}枚もらいました。"
-      @players[winner_player].collect_won_cards(@table_cards)
-      @table_cards.clear
+      hand_wineer(values)
     end
+  end
+
+  # 引き分け時の処理
+  def hand_draw
+    puts '引き分けです。'
+  end
+
+  # 勝敗がついた時の処理
+  def hand_wineer(values)
+    winner_player = values.index(values.max)
+    puts "#{@players[winner_player].name}が勝ちました。"
+    puts "#{@players[winner_player].name}はカードを#{@table_cards.size}枚もらいました。"
+    @players[winner_player].collect_won_cards(@table_cards)
+    @table_cards.clear
   end
 
   # 手札がゼロ枚になった場合は場札を手札へ追加する
@@ -157,7 +204,7 @@ class Game
     nohand_players.each { |nohand_player| puts "#{nohand_player.name}の手札がなくなりました。" }
   end
 
-  # 書くプレイヤの手札の枚数を表示する
+  # プレイヤ-の手札の枚数を表示する
   def display_hand_size
     @players.each { |player| puts "#{player.name}の手札の枚数は#{player.hand.size}" }
   end
