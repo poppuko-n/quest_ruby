@@ -1,101 +1,7 @@
 # frozen_string_literal: true
 
-# カード情報クラス
-class Card
-  SUITS = %w[スペード ハート ダイアモンド クラブ].freeze
-  RANKS = %w[2 3 4 5 6 7 8 9 10 J Q K A].freeze
-  attr_reader :suit, :rank
-
-  def initialize(suit, rank)
-    @suit = suit
-    @rank = rank
-  end
-
-  # カードの名前
-  def name
-    "#{@suit}の#{@rank}です。"
-  end
-
-  # カードの強さをかえす。
-  def value
-    return 14 if @rank == 'ジョーカー'
-
-    RANKS.index(@rank)
-  end
-
-  def spade_one?
-    @suit == 'スペード' && @rank == 'A'
-  end
-end
-
-# カード情報を継承し、ジョーカーを作成
-class Joker < Card
-  def initialize
-    super('ジョーカー', 'ジョーカー')
-  end
-
-  def name
-    'ジョーカーです。'
-  end
-end
-
-# カードを作成、管理するクラス
-class Deck
-  def initialize
-    @cards = []
-    Card::SUITS.each do |suit|
-      Card::RANKS.each do |rank|
-        @cards << Card.new(suit, rank)
-      end
-    end
-    @cards << Joker.new
-    shuffle
-  end
-
-  def shuffle
-    @cards.shuffle!
-  end
-
-  def size
-    @cards.size
-  end
-
-  def each_slice(player_count)
-    @cards.each_slice(player_count)
-  end
-end
-
-# プレイヤー情報クラス
-class Player
-  attr_reader :name, :hand, :won_cards
-
-  def initialize(name, hand)
-    @name = name
-    @hand = hand
-    @won_cards = []
-  end
-
-  # 手札からテーブルに出すカード
-  def play_card
-    hand.shift
-  end
-
-  # 勝者が取ったカードを場札を追加
-  def collect_won_cards(cards)
-    @won_cards.concat(cards)
-  end
-
-  # 手札が０枚になった時に場札をシャッフルして加える
-  def to_hand
-    @hand.concat(@won_cards.shuffle)
-    @won_cards.clear
-  end
-
-  # プレイヤーの手札が空になっているのか確認
-  def empty?
-    hand.empty?
-  end
-end
+require './deck'
+require './player'
 
 # ゲーム進行を管理するクラス
 class Game
@@ -232,6 +138,3 @@ class Game
     end
   end
 end
-
-game = Game.new
-game.start
